@@ -19,18 +19,18 @@ export default function Dashboard() {
     const creds = getCredentials();
     if (creds) {
       setHasCredentials(true);
-      fetchCredits(creds.user, creds.password);
+      fetchCredits(creds.user, creds.password, creds.hashSeguranca);
     }
   }, []);
 
-  async function fetchCredits(user: string, password: string) {
+  async function fetchCredits(user: string, password: string, hashSeguranca?: string) {
     setLoadingCredits(true);
     setCreditsError('');
     try {
       const res = await fetch('/api/credits', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user, password, hashSeguranca: creds.hashSeguranca }),
+        body: JSON.stringify({ user, password, hashSeguranca }),
       });
       const data = await res.json();
       if (data.error) setCreditsError(data.error);
