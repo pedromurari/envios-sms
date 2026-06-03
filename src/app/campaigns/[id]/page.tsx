@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getCampaign, getCredentials } from '@/lib/storage';
+import { getCampaign, getCredentials, saveCampaign } from '@/lib/storage';
 import type { Campaign, DeliveryStatus } from '@/types';
 import { SMS_STATUS_COLORS, SMS_STATUS_LABELS } from '@/types';
 import {
@@ -44,7 +44,13 @@ export default function CampaignDetail() {
         body: JSON.stringify({ user: creds.user, password: creds.password, hashSeguranca: creds.hashSeguranca, smsIds: campaign.smsIds.slice(0, 100) }),
       });
       const data = await res.json();
-      if (data.results) setStatuses(data.results);
+      if (data.results) {
+        setStatuses(data.results);
+        const delivered = (data.results as { status: number }[]).filter((s) => s.status === 4).length;
+        const updated = { ...campaign, stats: { ...campaign.stats, delivered } };
+        saveCampaign(updated);
+        setCampaign(updated);
+      }
     } catch {
       // ignore
     } finally {
