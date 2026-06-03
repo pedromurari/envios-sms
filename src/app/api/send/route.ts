@@ -5,7 +5,7 @@ export interface SendRequest {
   user: string;
   password: string;
   hashSeguranca?: string;
-  messages: Array<{ phone: string; message: string; externalkey?: string }>;
+  messages: Array<{ phone: string; message: string; externalkey?: string; day?: number; month?: number; year?: number; hour?: number; minute?: number }>;
 }
 
 export async function POST(req: NextRequest) {

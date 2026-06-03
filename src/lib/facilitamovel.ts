@@ -66,13 +66,14 @@ export async function sendSingle(
 
 export async function sendMultiple(
   creds: ApiCredentials,
-  messages: Array<{ phone: string; message: string; externalkey?: string }>
+  messages: Array<{ phone: string; message: string; externalkey?: string; day?: number; month?: number; year?: number; hour?: number; minute?: number }>
 ): Promise<{ accepted: string[]; rejected: number }> {
   const body = {
     messages: messages.map((m) => ({
       phone: sanitizePhone(m.phone),
       message: sanitizeMessage(m.message),
       ...(m.externalkey ? { externalkey: m.externalkey } : {}),
+      ...(m.day ? { day: m.day, month: m.month, year: m.year, hour: m.hour, minute: m.minute } : {}),
     })),
   };
 

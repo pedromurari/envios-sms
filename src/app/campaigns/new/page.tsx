@@ -17,6 +17,7 @@ import {
   ChevronUp,
   Users,
   X,
+  Clock,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -60,6 +61,10 @@ function NewCampaign() {
   const [savedGroups, setSavedGroups] = useState<LeadGroup[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState<string>('');
   const [leadsSource, setLeadsSource] = useState<'group' | 'csv'>('group');
+
+  const [scheduleEnabled, setScheduleEnabled] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState('');
+  const [scheduleTime, setScheduleTime] = useState('');
 
   const [sending, setSending] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -166,6 +171,14 @@ function NewCampaign() {
     setProgress(0);
     setResults([]);
 
+    // Parse schedule if enabled
+    let schedule: { day: number; month: number; year: number; hour: number; minute: number } | undefined;
+    if (scheduleEnabled && scheduleDate && scheduleTime) {
+      const [year, month, day] = scheduleDate.split('-').map(Number);
+      const [hour, minute] = scheduleTime.split(':').map(Number);
+      schedule = { day, month, year, hour, minute };
+    }
+
     const campaignId = `c_${Date.now()}`;
     const campaign: Campaign = {
       id: campaignId,
@@ -174,6 +187,7 @@ function NewCampaign() {
       leads,
       status: 'sending',
       createdAt: new Date().toISOString(),
+      scheduledAt: schedule ? `${scheduleDate}T${scheduleTime}` : undefined,
       stats: { total: leads.length, sent: 0, failed: 0, delivered: 0 },
       smsIds: [],
     };
@@ -188,6 +202,7 @@ function NewCampaign() {
         phone: l.phone,
         message: sanitizeMessage(message),
         externalkey: l.id,
+        ...(schedule ?? {}),
       }));
 
       try {
@@ -490,6 +505,56 @@ function NewCampaign() {
             </div>
           </Section>
 
+          <Section title="4. Agendamento (opcional)">
+            <div className="space-y-3">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <div
+                  onClick={() => { setScheduleEnabled(v => !v); }}
+                  className={`relative w-10 h-5 rounded-full transition-colors ${scheduleEnabled ? 'bg-emerald-500' : 'bg-slate-200'}`}
+                >
+                  <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${scheduleEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                </div>
+                <span className="text-sm font-medium text-slate-700">Agendar disparo para data/hora específica</span>
+              </label>
+
+              {scheduleEnabled && (
+                <div className="grid grid-cols-2 gap-4 mt-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Data</label>
+                    <input
+                      type="date"
+                      value={scheduleDate}
+                      onChange={(e) => setScheduleDate(e.target.value)}
+                      min={new Date().toISOString().split('T')[0]}
+                      className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      disabled={sending}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Horário (Brasília)</label>
+                    <input
+                      type="time"
+                      value={scheduleTime}
+                      onChange={(e) => setScheduleTime(e.target.value)}
+                      className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      disabled={sending}
+                    />
+                  </div>
+                  {scheduleDate && scheduleTime && (
+                    <div className="col-span-2 flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700">
+                      <CheckCircle2 className="w-4 h-4 shrink-0" />
+                      Agendado para <strong>{new Date(`${scheduleDate}T${scheduleTime}`).toLocaleString('pt-BR', { dateStyle: 'full', timeStyle: 'short' })}</strong>
+                    </div>
+                  )}
+                  <div className="col-span-2 flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
+                    <Info className="w-4 h-4 shrink-0 mt-0.5" />
+                    Operadoras bloqueiam envios fora de 08h–22h. Agende sempre dentro desse horário.
+                  </div>
+                </div>
+              )}
+            </div>
+          </Section>
+
           {sending && (
             <div className="bg-white rounded-xl border border-slate-200 p-6">
               <div className="flex items-center gap-3 mb-4">
@@ -517,8 +582,18 @@ function NewCampaign() {
               disabled={sending || !message.trim() || validLeads.length === 0 || !campaignName.trim()}
               className="flex items-center gap-2 bg-emerald-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              {sending ? 'Enviando...' : `Disparar para ${validLeads.length} leads`}
+              {sending
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : scheduleEnabled && scheduleDate && scheduleTime
+                  ? <Clock className="w-4 h-4" />
+                  : <Send className="w-4 h-4" />
+              }
+              {sending
+                ? 'Agendando...'
+                : scheduleEnabled && scheduleDate && scheduleTime
+                  ? `Agendar para ${validLeads.length} leads`
+                  : `Disparar para ${validLeads.length} leads`
+              }
             </button>
 
             {!sending && (
