@@ -8,12 +8,14 @@ import {
   ListOrdered,
   Settings,
   MessageSquare,
+  Users,
 } from 'lucide-react';
 
 const nav = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/campaigns/new', label: 'Nova Campanha', icon: Send },
   { href: '/campaigns', label: 'Campanhas', icon: ListOrdered },
+  { href: '/leads', label: 'Grupos de Leads', icon: Users },
   { href: '/settings', label: 'Configurações', icon: Settings },
 ];
 

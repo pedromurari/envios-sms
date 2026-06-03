@@ -1,15 +1,13 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Papa from 'papaparse';
-import { getCredentials, saveCampaign } from '@/lib/storage';
+import { getCredentials, saveCampaign, getLeadGroups, getLeadGroup } from '@/lib/storage';
 import { sanitizeMessage } from '@/lib/facilitamovel';
-import type { Lead, Campaign, SmsResult } from '@/types';
+import type { Lead, Campaign, SmsResult, LeadGroup } from '@/types';
 import {
   Upload,
-  FileText,
-  X,
   AlertTriangle,
   CheckCircle2,
   Send,
@@ -17,7 +15,10 @@ import {
   Info,
   ChevronDown,
   ChevronUp,
+  Users,
+  X,
 } from 'lucide-react';
+import Link from 'next/link';
 
 const MAX_SMS_CHARS = 160;
 const BATCH_SIZE = 50;
@@ -35,6 +36,7 @@ function buildLeads(rows: Record<string, string>[], phoneCol: string, nameCol: s
 
 export default function NewCampaign() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [campaignName, setCampaignName] = useState('');
@@ -47,11 +49,31 @@ export default function NewCampaign() {
   const [rawRows, setRawRows] = useState<Record<string, string>[]>([]);
   const [showLeadsPreview, setShowLeadsPreview] = useState(false);
 
+  const [savedGroups, setSavedGroups] = useState<LeadGroup[]>([]);
+  const [selectedGroupId, setSelectedGroupId] = useState<string>('');
+  const [leadsSource, setLeadsSource] = useState<'group' | 'csv'>('group');
+
   const [sending, setSending] = useState(false);
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<SmsResult[]>([]);
   const [done, setDone] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+
+  useEffect(() => {
+    const groups = getLeadGroups();
+    setSavedGroups(groups);
+    const groupParam = searchParams.get('group');
+    if (groupParam) {
+      const g = getLeadGroup(groupParam);
+      if (g) {
+        setSelectedGroupId(groupParam);
+        setLeads(g.leads);
+        setLeadsSource('group');
+      }
+    } else if (groups.length === 0) {
+      setLeadsSource('csv');
+    }
+  }, []);
 
   const sanitized = sanitizeMessage(message);
   const charCount = sanitized.length;
@@ -128,7 +150,7 @@ export default function NewCampaign() {
       return;
     }
     if (leads.length === 0) {
-      alert('Adicione os leads via CSV.');
+      alert('Selecione um grupo ou faça upload de um CSV com leads.');
       return;
     }
 
@@ -232,30 +254,96 @@ export default function NewCampaign() {
             />
           </Section>
 
-          <Section title="2. Upload de Leads (CSV)">
-            <div
-              onDrop={onDrop}
-              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-              onDragLeave={() => setDragOver(false)}
-              onClick={() => fileRef.current?.click()}
-              className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
-                dragOver ? 'border-emerald-400 bg-emerald-50' : 'border-slate-200 hover:border-emerald-300 hover:bg-slate-50'
-              }`}
-            >
-              <input
-                ref={fileRef}
-                type="file"
-                accept=".csv,text/csv"
-                className="hidden"
-                onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+          <Section title="2. Leads">
+            {/* Source selector */}
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={() => { setLeadsSource('group'); setLeads(selectedGroupId ? (getLeadGroup(selectedGroupId)?.leads ?? []) : []); }}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${leadsSource === 'group' ? 'bg-emerald-600 text-white border-emerald-600' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
                 disabled={sending}
-              />
-              <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-              <p className="text-slate-600 font-medium text-sm">
-                {csvFileName ? csvFileName : 'Arraste o CSV ou clique para selecionar'}
-              </p>
-              <p className="text-slate-400 text-xs mt-1">A coluna de telefone deve conter o DDD + número</p>
+              >
+                <Users className="w-4 h-4" /> Usar grupo salvo
+              </button>
+              <button
+                onClick={() => { setLeadsSource('csv'); setLeads([]); }}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${leadsSource === 'csv' ? 'bg-emerald-600 text-white border-emerald-600' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                disabled={sending}
+              >
+                <Upload className="w-4 h-4" /> Upload CSV agora
+              </button>
             </div>
+
+            {/* Group selector */}
+            {leadsSource === 'group' && (
+              savedGroups.length === 0 ? (
+                <div className="text-center py-6 border-2 border-dashed border-slate-200 rounded-xl">
+                  <Users className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                  <p className="text-slate-500 text-sm">Nenhum grupo salvo ainda</p>
+                  <Link href="/leads/new" className="mt-2 inline-block text-emerald-600 text-sm hover:underline">
+                    Criar um grupo →
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Selecione o grupo de leads</label>
+                  <div className="grid grid-cols-1 gap-2 max-h-64 overflow-y-auto">
+                    {savedGroups.map((g) => (
+                      <button
+                        key={g.id}
+                        onClick={() => { setSelectedGroupId(g.id); setLeads(g.leads); }}
+                        disabled={sending}
+                        className={`flex items-center justify-between px-4 py-3 rounded-lg border text-left transition-colors ${
+                          selectedGroupId === g.id
+                            ? 'border-emerald-500 bg-emerald-50'
+                            : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-2 h-2 rounded-full ${selectedGroupId === g.id ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                          <div>
+                            <p className="font-medium text-slate-800 text-sm">{g.name}</p>
+                            {g.description && <p className="text-slate-400 text-xs">{g.description}</p>}
+                          </div>
+                        </div>
+                        <span className="text-slate-500 text-sm font-medium">{g.leads.length.toLocaleString('pt-BR')} leads</span>
+                      </button>
+                    ))}
+                  </div>
+                  {selectedGroupId && (
+                    <p className="text-xs text-slate-400 mt-1">
+                      Grupo selecionado · {leads.length.toLocaleString('pt-BR')} leads carregados
+                    </p>
+                  )}
+                </div>
+              )
+            )}
+
+            {/* CSV upload */}
+            {leadsSource === 'csv' && (
+              <div
+                onDrop={onDrop}
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onClick={() => fileRef.current?.click()}
+                className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
+                  dragOver ? 'border-emerald-400 bg-emerald-50' : 'border-slate-200 hover:border-emerald-300 hover:bg-slate-50'
+                }`}
+              >
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept=".csv,text/csv"
+                  className="hidden"
+                  onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+                  disabled={sending}
+                />
+                <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                <p className="text-slate-600 font-medium text-sm">
+                  {csvFileName ? csvFileName : 'Arraste o CSV ou clique para selecionar'}
+                </p>
+                <p className="text-slate-400 text-xs mt-1">A coluna de telefone deve conter o DDD + número</p>
+              </div>
+            )}
 
             {csvError && (
               <div className="flex items-center gap-2 text-red-600 text-sm mt-2">

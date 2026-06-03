@@ -42,6 +42,14 @@ export interface DeliveryStatus {
   phone?: string;
 }
 
+export interface LeadGroup {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+  leads: Lead[];
+}
+
 export interface ApiCredentials {
   user: string;
   password: string;

@@ -1,7 +1,8 @@
-import type { Campaign, ApiCredentials } from '@/types';
+import type { Campaign, ApiCredentials, LeadGroup } from '@/types';
 
 const CAMPAIGNS_KEY = 'fm_campaigns';
 const CREDS_KEY = 'fm_credentials';
+const GROUPS_KEY = 'fm_lead_groups';
 
 export function saveCampaign(campaign: Campaign): void {
   const all = getCampaigns();
@@ -38,4 +39,29 @@ export function getCredentials(): ApiCredentials | null {
   } catch {
     return null;
   }
+}
+
+export function saveLeadGroup(group: LeadGroup): void {
+  const all = getLeadGroups();
+  const idx = all.findIndex((g) => g.id === group.id);
+  if (idx >= 0) all[idx] = group;
+  else all.unshift(group);
+  localStorage.setItem(GROUPS_KEY, JSON.stringify(all));
+}
+
+export function getLeadGroups(): LeadGroup[] {
+  try {
+    return JSON.parse(localStorage.getItem(GROUPS_KEY) ?? '[]');
+  } catch {
+    return [];
+  }
+}
+
+export function getLeadGroup(id: string): LeadGroup | undefined {
+  return getLeadGroups().find((g) => g.id === id);
+}
+
+export function deleteLeadGroup(id: string): void {
+  const all = getLeadGroups().filter((g) => g.id !== id);
+  localStorage.setItem(GROUPS_KEY, JSON.stringify(all));
 }
