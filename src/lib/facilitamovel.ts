@@ -10,7 +10,13 @@ function sanitizeMessage(text: string): string {
 }
 
 function sanitizePhone(phone: string): string {
-  return phone.replace(/\D/g, '').replace(/^55/, '');
+  const digits = phone.replace(/\D/g, '');
+  // Remove country code 55 only when number is clearly too long (12+ digits)
+  // Avoids stripping area code 55 (DDD 55 - Santa Maria/RS etc.)
+  if (digits.startsWith('55') && digits.length >= 12) {
+    return digits.slice(2);
+  }
+  return digits;
 }
 
 function authHeaders(creds: ApiCredentials): Record<string, string> {
