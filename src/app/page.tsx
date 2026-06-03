@@ -14,13 +14,18 @@ export default function Dashboard() {
   const [hasCredentials, setHasCredentials] = useState(false);
 
   useEffect(() => {
-    const stored = getCampaigns();
-    setCampaigns(stored);
+    function load() {
+      setCampaigns(getCampaigns());
+    }
+    load();
     const creds = getCredentials();
     if (creds) {
       setHasCredentials(true);
       fetchCredits(creds.user, creds.password, creds.hashSeguranca);
     }
+    // Recarrega ao voltar para a aba
+    window.addEventListener('focus', load);
+    return () => window.removeEventListener('focus', load);
   }, []);
 
   async function fetchCredits(user: string, password: string, hashSeguranca?: string) {

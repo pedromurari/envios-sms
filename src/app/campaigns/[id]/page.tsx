@@ -37,20 +37,32 @@ export default function CampaignDetail() {
     if (!creds) return;
 
     setLoadingStatus(true);
+    const allResults: DeliveryStatus[] = [];
+    const PAGE = 100;
+
     try {
-      const res = await fetch('/api/status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user: creds.user, password: creds.password, hashSeguranca: creds.hashSeguranca, smsIds: campaign.smsIds.slice(0, 100) }),
-      });
-      const data = await res.json();
-      if (data.results) {
-        setStatuses(data.results);
-        const delivered = (data.results as { status: number }[]).filter((s) => s.status === 4).length;
-        const updated = { ...campaign, stats: { ...campaign.stats, delivered } };
-        saveCampaign(updated);
-        setCampaign(updated);
+      // Pagina pelos IDs em lotes de 100 (limite da API)
+      for (let i = 0; i < campaign.smsIds.length; i += PAGE) {
+        const chunk = campaign.smsIds.slice(i, i + PAGE);
+        const res = await fetch('/api/status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user: creds.user,
+            password: creds.password,
+            hashSeguranca: creds.hashSeguranca,
+            smsIds: chunk,
+          }),
+        });
+        const data = await res.json();
+        if (data.results) allResults.push(...data.results);
       }
+
+      setStatuses(allResults);
+      const delivered = allResults.filter((s) => s.status === 4).length;
+      const updated = { ...campaign, stats: { ...campaign.stats, delivered } };
+      saveCampaign(updated);
+      setCampaign(updated);
     } catch {
       // ignore
     } finally {
