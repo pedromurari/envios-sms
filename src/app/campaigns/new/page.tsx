@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Papa from 'papaparse';
 import { getCredentials, saveCampaign, getLeadGroups, getLeadGroup } from '@/lib/storage';
@@ -34,7 +34,15 @@ function buildLeads(rows: Record<string, string>[], phoneCol: string, nameCol: s
     .filter((l) => l.phone);
 }
 
-export default function NewCampaign() {
+export default function NewCampaignPage() {
+  return (
+    <Suspense>
+      <NewCampaign />
+    </Suspense>
+  );
+}
+
+function NewCampaign() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const fileRef = useRef<HTMLInputElement>(null);
