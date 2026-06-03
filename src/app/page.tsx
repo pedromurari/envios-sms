@@ -30,7 +30,7 @@ export default function Dashboard() {
       const res = await fetch('/api/credits', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user, password }),
+        body: JSON.stringify({ user, password, hashSeguranca: creds.hashSeguranca }),
       });
       const data = await res.json();
       if (data.error) setCreditsError(data.error);

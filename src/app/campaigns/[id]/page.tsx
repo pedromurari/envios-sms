@@ -41,7 +41,7 @@ export default function CampaignDetail() {
       const res = await fetch('/api/status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user: creds.user, password: creds.password, smsIds: campaign.smsIds.slice(0, 100) }),
+        body: JSON.stringify({ user: creds.user, password: creds.password, hashSeguranca: creds.hashSeguranca, smsIds: campaign.smsIds.slice(0, 100) }),
       });
       const data = await res.json();
       if (data.results) setStatuses(data.results);

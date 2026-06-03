@@ -45,6 +45,7 @@ export interface DeliveryStatus {
 export interface ApiCredentials {
   user: string;
   password: string;
+  hashSeguranca?: string;
 }
 
 export type SmsStatus = 1 | 2 | 3 | 4 | 5;

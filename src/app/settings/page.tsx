@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { getCredentials, saveCredentials } from '@/lib/storage';
-import { Settings, CheckCircle2, XCircle, Loader2, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { Settings, CheckCircle2, XCircle, Loader2, Eye, EyeOff, ShieldCheck, Key } from 'lucide-react';
 
 export default function SettingsPage() {
   const [user, setUser] = useState('');
   const [password, setPassword] = useState('');
+  const [hashSeguranca, setHashSeguranca] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showHash, setShowHash] = useState(false);
   const [saved, setSaved] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
@@ -17,12 +19,17 @@ export default function SettingsPage() {
     if (creds) {
       setUser(creds.user);
       setPassword(creds.password);
+      setHashSeguranca(creds.hashSeguranca ?? '');
     }
   }, []);
 
   function handleSave() {
     if (!user.trim() || !password.trim()) return;
-    saveCredentials({ user: user.trim(), password: password.trim() });
+    saveCredentials({
+      user: user.trim(),
+      password: password.trim(),
+      hashSeguranca: hashSeguranca.trim() || undefined,
+    });
     setSaved(true);
     setTestResult(null);
     setTimeout(() => setSaved(false), 2500);
@@ -36,7 +43,11 @@ export default function SettingsPage() {
       const res = await fetch('/api/credits', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user: user.trim(), password: password.trim() }),
+        body: JSON.stringify({
+          user: user.trim(),
+          password: password.trim(),
+          hashSeguranca: hashSeguranca.trim() || undefined,
+        }),
       });
       const data = await res.json();
       if (data.error) {
@@ -100,9 +111,37 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">
+            Hash de Segurança
+            <span className="ml-2 text-xs font-normal text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Necessário para IP dinâmico</span>
+          </label>
+          <div className="relative">
+            <input
+              type={showHash ? 'text' : 'password'}
+              value={hashSeguranca}
+              onChange={(e) => setHashSeguranca(e.target.value)}
+              placeholder="Cole aqui o hash fornecido pela FacilitaMóvel"
+              className="w-full border border-slate-200 rounded-lg px-4 py-2.5 pr-10 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+            <button
+              type="button"
+              onClick={() => setShowHash((v) => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            >
+              {showHash ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+          {hashSeguranca && (
+            <p className="text-xs text-emerald-600 mt-1 flex items-center gap-1">
+              <Key className="w-3 h-3" /> Hash configurado ({hashSeguranca.length} caracteres)
+            </p>
+          )}
+        </div>
+
         {testResult && (
           <div className={`flex items-start gap-2 p-3 rounded-lg text-sm ${testResult.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-            {testResult.ok ? <CheckCircle2 className="w-4 h-4 mt-0.5" /> : <XCircle className="w-4 h-4 mt-0.5" />}
+            {testResult.ok ? <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" /> : <XCircle className="w-4 h-4 mt-0.5 shrink-0" />}
             {testResult.message}
           </div>
         )}
@@ -136,7 +175,7 @@ export default function SettingsPage() {
           </div>
           <div className="flex gap-3">
             <span className="text-slate-400 w-28 shrink-0">Autenticação</span>
-            <span>Headers <code className="text-xs bg-slate-100 px-1 rounded">user</code> e <code className="text-xs bg-slate-100 px-1 rounded">password</code></span>
+            <span>Headers <code className="text-xs bg-slate-100 px-1 rounded">user</code>, <code className="text-xs bg-slate-100 px-1 rounded">password</code> e <code className="text-xs bg-slate-100 px-1 rounded">hashSeguranca</code></span>
           </div>
           <div className="flex gap-3">
             <span className="text-slate-400 w-28 shrink-0">Encoding</span>

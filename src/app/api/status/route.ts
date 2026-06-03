@@ -3,7 +3,7 @@ import { checkStatus } from '@/lib/facilitamovel';
 
 export async function POST(req: NextRequest) {
   try {
-    const { user, password, smsIds } = await req.json();
+    const { user, password, hashSeguranca, smsIds } = await req.json();
     if (!user || !password) {
       return NextResponse.json({ error: 'Credenciais ausentes' }, { status: 400 });
     }
@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     }
 
     const results = await Promise.all(
-      (smsIds as string[]).map((id) => checkStatus({ user, password }, id))
+      (smsIds as string[]).map((id) => checkStatus({ user, password, hashSeguranca }, id))
     );
     return NextResponse.json({ results });
   } catch (err: unknown) {

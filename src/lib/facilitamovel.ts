@@ -13,10 +13,20 @@ function sanitizePhone(phone: string): string {
   return phone.replace(/\D/g, '').replace(/^55/, '');
 }
 
+function authHeaders(creds: ApiCredentials): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    user: creds.user,
+    password: creds.password,
+  };
+  if (creds.hashSeguranca) headers.hashSeguranca = creds.hashSeguranca;
+  return headers;
+}
+
 export async function checkCredits(creds: ApiCredentials): Promise<number> {
   const res = await fetch(`${BASE_URL}/checkCreditJson.ft`, {
     method: 'POST',
-    headers: { user: creds.user, password: creds.password },
+    headers: authHeaders(creds),
     body: '',
   });
   const data = await res.json();
@@ -40,11 +50,7 @@ export async function sendSingle(
 
   const res = await fetch(`${BASE_URL}/simpleSendJson.ft`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      user: creds.user,
-      password: creds.password,
-    },
+    headers: authHeaders(creds),
     body: JSON.stringify(body),
   });
   const data = await res.json();
@@ -66,11 +72,7 @@ export async function sendMultiple(
 
   const res = await fetch(`${BASE_URL}/multipleSendJson.ft`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      user: creds.user,
-      password: creds.password,
-    },
+    headers: authHeaders(creds),
     body: JSON.stringify(body),
   });
   const data = await res.json();
@@ -84,11 +86,7 @@ export async function sendMultiple(
 export async function checkStatus(creds: ApiCredentials, smsId: string): Promise<DeliveryStatus> {
   const res = await fetch(`${BASE_URL}/dlrStatusJson.ft`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      user: creds.user,
-      password: creds.password,
-    },
+    headers: authHeaders(creds),
     body: JSON.stringify({ smsid: smsId }),
   });
   const data = await res.json();

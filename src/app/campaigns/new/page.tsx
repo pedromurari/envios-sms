@@ -164,7 +164,7 @@ export default function NewCampaign() {
         const res = await fetch('/api/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user: creds.user, password: creds.password, messages }),
+          body: JSON.stringify({ user: creds.user, password: creds.password, hashSeguranca: creds.hashSeguranca, messages }),
         });
         const data = await res.json();
 
